@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Automotive Performance Explorer</title>
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: #f5f7fa;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        .title-panel {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .title-panel h1 {
+            font-size: 2rem;
+            margin-bottom: 8px;
+        }
+        .title-panel p {
+            opacity: 0.9;
+        }
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .stat-box {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        .stat-number {
+            font-size: 32px;
+            font-weight: bold;
+        }
+        .stat-label {
+            font-size: 13px;
+            opacity: 0.9;
+            margin-top: 5px;
+        }
+        .main-content {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            gap: 20px;
+        }
+        .card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .card h4 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.1rem;
+        }
+        .card p {
+            color: #666;
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+        }
+        hr {
+            border: none;
+            border-top: 1px solid #eee;
+            margin: 15px 0;
+        }
+        label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: #444;
+        }
+        select, input[type="range"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+        select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        .checkbox-group {
+            margin-bottom: 15px;
+        }
+        .checkbox-group label {
+            display: flex;
+            align-items: center;
+            font-weight: normal;
+            margin-bottom: 8px;
+            cursor: pointer;
+        }
+        .checkbox-group input {
+            margin-right: 10px;
+            width: 18px;
+            height: 18px;
+        }
+        .range-container {
+            margin-bottom: 15px;
+        }
+        .range-values {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+        .charts-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+        .data-table th {
+            background: #667eea;
+            color: white;
+            padding: 12px 10px;
+            text-align: left;
+            font-weight: 500;
+        }
+        .data-table td {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        .data-table tr:hover {
+            background: #f8f9ff;
+        }
+        .table-container {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        footer {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+            font-size: 14px;
+        }
+        @media (max-width: 900px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            .stats-row {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .charts-row {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="title-panel">
+        <h1>🚗 Automotive Performance Explorer</h1>
+        <p>Interactive visualization of the mtcars dataset</p>
+    </div>
+
+    <div class="stats-row">
+        <div class="stat-box">
+            <div class="stat-number" id="avg-mpg">20.1</div>
+            <div class="stat-label">Avg MPG</div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-number" id="avg-hp">147</div>
+            <div class="stat-label">Avg Horsepower</div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-number" id="total-cars">32</div>
+            <div class="stat-label">Total Cars</div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-number" id="avg-weight">3.22</div>
+            <div class="stat-label">Avg Weight (1000 lbs)</div>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div class="sidebar">
+            <div class="card">
+                <h4>📊 Visualization Controls</h4>
+                <hr>
+                
+                <label for="x-var">X-Axis Variable:</label>
+                <select id="x-var">
+                    <option value="wt" selected>Weight (1000 lbs)</option>
+                    <option value="mpg">Miles per Gallon</option>
+                    <option value="hp">Horsepower</option>
+                    <option value="disp">Displacement (cu.in.)</option>
+                    <option value="qsec">Quarter Mile Time</option>
+                </select>
+
+                <label for="y-var">Y-Axis Variable:</label>
+                <select id="y-var">
+                    <option value="mpg" selected>Miles per Gallon</option>
+                    <option value="hp">Horsepower</option>
+                    <option value="wt">Weight (1000 lbs)</option>
+                    <option value="disp">Displacement (cu.in.)</option>
+                    <option value="qsec">Quarter Mile Time</option>
+                </select>
+
+                <label for="color-var">Color By:</label>
+                <select id="color-var">
+                    <option value="cylinders" selected>Cylinders</option>
+                    <option value="transmission">Transmission</option>
+                    <option value="engine_type">Engine Type</option>
+                </select>
+
+                <hr>
+
+                <div class="checkbox-group">
+                    <label><strong>Filter by Cylinders:</strong></label>
+                    <label><input type="checkbox" id="cyl-4" checked> 4 Cylinders</label>
+                    <label><input type="checkbox" id="cyl-6" checked> 6 Cylinders</label>
+                    <label><input type="checkbox" id="cyl-8" checked> 8 Cylinders</label>
+                </div>
+
+                <div class="checkbox-group">
+                    <label><strong>Filter by Transmission:</strong></label>
+                    <label><input type="checkbox" id="trans-auto" checked> Automatic</label>
+                    <label><input type="checkbox" id="trans-manual" checked> Manual</label>
+                </div>
+
+                <hr>
+
+                <div class="range-container">
+                    <label for="hp-min">Horsepower Range:</label>
+                    <input type="range" id="hp-min" min="50" max="335" value="50">
+                    <input type="range" id="hp-max" min="50" max="335" value="335">
+                    <div class="range-values">
+                        <span id="hp-min-val">50</span>
+                        <span id="hp-max-val">335</span>
+                    </div>
+                </div>
+
+                <hr>
+
+                <div class="checkbox-group">
+                    <label><input type="checkbox" id="show-trend" checked> Show Trend Line</label>
+                </div>
+            </div>
+        </div>
+
+        <div class="main-area">
+            <div class="card">
+                <h4>📈 Interactive Scatter Plot</h4>
+                <p>Hover over points for details. Click and drag to zoom. Double-click to reset.</p>
+                <div id="scatter-plot" style="height: 450px;"></div>
+            </div>
+
+            <div class="charts-row">
+                <div class="card">
+                    <h4>📊 Distribution by Category</h4>
+                    <div id="bar-chart" style="height: 300px;"></div>
+                </div>
+                <div class="card">
+                    <h4>🥧 Composition</h4>
+                    <div id="pie-chart" style="height: 300px;"></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h4>📋 Filtered Data Table</h4>
+                <div class="table-container">
+                    <table class="data-table" id="data-table">
+                        <thead>
+                            <tr>
+                                <th>Car</th>
+                                <th>MPG</th>
+                                <th>HP</th>
+                                <th>Weight</th>
+                                <th>Cylinders</th>
+                                <th>Transmission</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        Built with Plotly.js | Data: mtcars dataset
+    </footer>
+
+    <script>
+        // mtcars dataset
+        const mtcars = [
+            {car_name: "Mazda RX4", mpg: 21.0, cyl: 6, disp: 160.0, hp: 110, wt: 2.620, qsec: 16.46, vs: 0, am: 1},
+            {car_name: "Mazda RX4 Wag", mpg: 21.0, cyl: 6, disp: 160.0, hp: 110, wt: 2.875, qsec: 17.02, vs: 0, am: 1},
+            {car_name: "Datsun 710", mpg: 22.8, cyl: 4, disp: 108.0, hp: 93, wt: 2.320, qsec: 18.61, vs: 1, am: 1},
+            {car_name: "Hornet 4 Drive", mpg: 21.4, cyl: 6, disp: 258.0, hp: 110, wt: 3.215, qsec: 19.44, vs: 1, am: 0},
+            {car_name: "Hornet Sportabout", mpg: 18.7, cyl: 8, disp: 360.0, hp: 175, wt: 3.440, qsec: 17.02, vs: 0, am: 0},
+            {car_name: "Valiant", mpg: 18.1, cyl: 6, disp: 225.0, hp: 105, wt: 3.460, qsec: 20.22, vs: 1, am: 0},
+            {car_name: "Duster 360", mpg: 14.3, cyl: 8, disp: 360.0, hp: 245, wt: 3.570, qsec: 15.84, vs: 0, am: 0},
+            {car_name: "Merc 240D", mpg: 24.4, cyl: 4, disp: 146.7, hp: 62, wt: 3.190, qsec: 20.00, vs: 1, am: 0},
+            {car_name: "Merc 230", mpg: 22.8, cyl: 4, disp: 140.8, hp: 95, wt: 3.150, qsec: 22.90, vs: 1, am: 0},
+            {car_name: "Merc 280", mpg: 19.2, cyl: 6, disp: 167.6, hp: 123, wt: 3.440, qsec: 18.30, vs: 1, am: 0},
+            {car_name: "Merc 280C", mpg: 17.8, cyl: 6, disp: 167.6, hp: 123, wt: 3.440, qsec: 18.90, vs: 1, am: 0},
+            {car_name: "Merc 450SE", mpg: 16.4, cyl: 8, disp: 275.8, hp: 180, wt: 4.070, qsec: 17.40, vs: 0, am: 0},
+            {car_name: "Merc 450SL", mpg: 17.3, cyl: 8, disp: 275.8, hp: 180, wt: 3.730, qsec: 17.60, vs: 0, am: 0},
+            {car_name: "Merc 450SLC", mpg: 15.2, cyl: 8, disp: 275.8, hp: 180, wt: 3.780, qsec: 18.00, vs: 0, am: 0},
+            {car_name: "Cadillac Fleetwood", mpg: 10.4, cyl: 8, disp: 472.0, hp: 205, wt: 5.250, qsec: 17.98, vs: 0, am: 0},
+            {car_name: "Lincoln Continental", mpg: 10.4, cyl: 8, disp: 460.0, hp: 215, wt: 5.424, qsec: 17.82, vs: 0, am: 0},
+            {car_name: "Chrysler Imperial", mpg: 14.7, cyl: 8, disp: 440.0, hp: 230, wt: 5.345, qsec: 17.42, vs: 0, am: 0},
+            {car_name: "Fiat 128", mpg: 32.4, cyl: 4, disp: 78.7, hp: 66, wt: 2.200, qsec: 19.47, vs: 1, am: 1},
+            {car_name: "Honda Civic", mpg: 30.4, cyl: 4, disp: 75.7, hp: 52, wt: 1.615, qsec: 18.52, vs: 1, am: 1},
+            {car_name: "Toyota Corolla", mpg: 33.9, cyl: 4, disp: 71.1, hp: 65, wt: 1.835, qsec: 19.90, vs: 1, am: 1},
+            {car_name: "Toyota Corona", mpg: 21.5, cyl: 4, disp: 120.1, hp: 97, wt: 2.465, qsec: 20.01, vs: 1, am: 0},
+            {car_name: "Dodge Challenger", mpg: 15.5, cyl: 8, disp: 318.0, hp: 150, wt: 3.520, qsec: 16.87, vs: 0, am: 0},
+            {car_name: "AMC Javelin", mpg: 15.2, cyl: 8, disp: 304.0, hp: 150, wt: 3.435, qsec: 17.30, vs: 0, am: 0},
+            {car_name: "Camaro Z28", mpg: 13.3, cyl: 8, disp: 350.0, hp: 245, wt: 3.840, qsec: 15.41, vs: 0, am: 0},
+            {car_name: "Pontiac Firebird", mpg: 19.2, cyl: 8, disp: 400.0, hp: 175, wt: 3.845, qsec: 17.05, vs: 0, am: 0},
+            {car_name: "Fiat X1-9", mpg: 27.3, cyl: 4, disp: 79.0, hp: 66, wt: 1.935, qsec: 18.90, vs: 1, am: 1},
+            {car_name: "Porsche 914-2", mpg: 26.0, cyl: 4, disp: 120.3, hp: 91, wt: 2.140, qsec: 16.70, vs: 0, am: 1},
+            {car_name: "Lotus Europa", mpg: 30.4, cyl: 4, disp: 95.1, hp: 113, wt: 1.513, qsec: 16.90, vs: 1, am: 1},
+            {car_name: "Ford Pantera L", mpg: 15.8, cyl: 8, disp: 351.0, hp: 264, wt: 3.170, qsec: 14.50, vs: 0, am: 1},
+            {car_name: "Ferrari Dino", mpg: 19.7, cyl: 6, disp: 145.0, hp: 175, wt: 2.770, qsec: 15.50, vs: 0, am: 1},
+            {car_name: "Maserati Bora", mpg: 15.0, cyl: 8, disp: 301.0, hp: 335, wt: 3.570, qsec: 14.60, vs: 0, am: 1},
+            {car_name: "Volvo 142E", mpg: 21.4, cyl: 4, disp: 121.0, hp: 109, wt: 2.780, qsec: 18.60, vs: 1, am: 1}
+        ];
+
+        // Add derived columns
+        mtcars.forEach(car => {
+            car.cylinders = car.cyl + " Cylinders";
+            car.transmission = car.am === 0 ? "Automatic" : "Manual";
+            car.engine_type = car.vs === 0 ? "V-shaped" : "Straight";
+        });
+
+        const colors = {
+            "4 Cylinders": "#667eea",
+            "6 Cylinders": "#f093fb",
+            "8 Cylinders": "#4facfe",
+            "Automatic": "#667eea",
+            "Manual": "#f093fb",
+            "V-shaped": "#667eea",
+            "Straight": "#f093fb"
+        };
+
+        const varLabels = {
+            mpg: "Miles per Gallon",
+            hp: "Horsepower",
+            wt: "Weight (1000 lbs)",
+            disp: "Displacement (cu.in.)",
+            qsec: "Quarter Mile Time"
+        };
+
+        function getFilteredData() {
+            const cyl4 = document.getElementById('cyl-4').checked;
+            const cyl6 = document.getElementById('cyl-6').checked;
+            const cyl8 = document.getElementById('cyl-8').checked;
+            const transAuto = document.getElementById('trans-auto').checked;
+            const transManual = document.getElementById('trans-manual').checked;
+            const hpMin = parseInt(document.getElementById('hp-min').value);
+            const hpMax = parseInt(document.getElementById('hp-max').value);
+
+            return mtcars.filter(car => {
+                const cylMatch = (cyl4 && car.cyl === 4) || (cyl6 && car.cyl === 6) || (cyl8 && car.cyl === 8);
+                const transMatch = (transAuto && car.am === 0) || (transManual && car.am === 1);
+                const hpMatch = car.hp >= hpMin && car.hp <= hpMax;
+                return cylMatch && transMatch && hpMatch;
+            });
+        }
+
+        function updateStats(data) {
+            const avgMpg = data.length > 0 ? (data.reduce((s, c) => s + c.mpg, 0) / data.length).toFixed(1) : "N/A";
+            const avgHp = data.length > 0 ? Math.round(data.reduce((s, c) => s + c.hp, 0) / data.length) : "N/A";
+            const avgWt = data.length > 0 ? (data.reduce((s, c) => s + c.wt, 0) / data.length).toFixed(2) : "N/A";
+            
+            document.getElementById('avg-mpg').textContent = avgMpg;
+            document.getElementById('avg-hp').textContent = avgHp;
+            document.getElementById('total-cars').textContent = data.length;
+            document.getElementById('avg-weight').textContent = avgWt;
+        }
+
+        function updateScatterPlot(data) {
+            const xVar = document.getElementById('x-var').value;
+            const yVar = document.getElementById('y-var').value;
+            const colorVar = document.getElementById('color-var').value;
+            const showTrend = document.getElementById('show-trend').checked;
+
+            const groups = {};
+            data.forEach(car => {
+                const group = car[colorVar];
+                if (!groups[group]) groups[group] = [];
+                groups[group].push(car);
+            });
+
+            const traces = [];
+            Object.keys(groups).forEach(group => {
+                const groupData = groups[group];
+                traces.push({
+                    x: groupData.map(c => c[xVar]),
+                    y: groupData.map(c => c[yVar]),
+                    mode: 'markers',
+                    type: 'scatter',
+                    name: group,
+                    marker: { size: 12, color: colors[group], opacity: 0.8 },
+                    text: groupData.map(c => `<b>${c.car_name}</b><br>MPG: ${c.mpg}<br>HP: ${c.hp}<br>Weight: ${c.wt}k lbs`),
+                    hoverinfo: 'text'
+                });
+            });
+
+            if (showTrend && data.length > 2) {
+                const xVals = data.map(c => c[xVar]);
+                const yVals = data.map(c => c[yVar]);
+                const n = xVals.length;
+                const sumX = xVals.reduce((a, b) => a + b, 0);
+                const sumY = yVals.reduce((a, b) => a + b, 0);
+                const sumXY = xVals.reduce((s, x, i) => s + x * yVals[i], 0);
+                const sumX2 = xVals.reduce((s, x) => s + x * x, 0);
+                const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+                const intercept = (sumY - slope * sumX) / n;
+                const minX = Math.min(...xVals);
+                const maxX = Math.max(...xVals);
+                
+                traces.push({
+                    x: [minX, maxX],
+                    y: [slope * minX + intercept, slope * maxX + intercept],
+                    mode: 'lines',
+                    name: 'Trend',
+                    line: { color: '#333', dash: 'dash', width: 2 }
+                });
+            }
+
+            Plotly.newPlot('scatter-plot', traces, {
+                xaxis: { title: varLabels[xVar] },
+                yaxis: { title: varLabels[yVar] },
+                legend: { orientation: 'h', y: -0.15 },
+                margin: { t: 20 }
+            }, { responsive: true });
+        }
+
+        function updateBarChart(data) {
+            const colorVar = document.getElementById('color-var').value;
+            const groups = {};
+            data.forEach(car => {
+                const group = car[colorVar];
+                if (!groups[group]) groups[group] = { sum: 0, count: 0 };
+                groups[group].sum += car.mpg;
+                groups[group].count++;
+            });
+
+            const labels = Object.keys(groups);
+            const values = labels.map(l => (groups[l].sum / groups[l].count).toFixed(1));
+            const barColors = labels.map(l => colors[l]);
+
+            Plotly.newPlot('bar-chart', [{
+                x: labels,
+                y: values,
+                type: 'bar',
+                marker: { color: barColors }
+            }], {
+                yaxis: { title: 'Average MPG' },
+                margin: { t: 20 }
+            }, { responsive: true });
+        }
+
+        function updatePieChart(data) {
+            const colorVar = document.getElementById('color-var').value;
+            const groups = {};
+            data.forEach(car => {
+                const group = car[colorVar];
+                groups[group] = (groups[group] || 0) + 1;
+            });
+
+            const labels = Object.keys(groups);
+            const values = labels.map(l => groups[l]);
+            const pieColors = labels.map(l => colors[l]);
+
+            Plotly.newPlot('pie-chart', [{
+                labels: labels,
+                values: values,
+                type: 'pie',
+                marker: { colors: pieColors }
+            }], {
+                showlegend: false,
+                margin: { t: 20 }
+            }, { responsive: true });
+        }
+
+        function updateTable(data) {
+            const tbody = document.querySelector('#data-table tbody');
+            tbody.innerHTML = data.map(car => `
+                <tr>
+                    <td>${car.car_name}</td>
+                    <td>${car.mpg}</td>
+                    <td>${car.hp}</td>
+                    <td>${car.wt}</td>
+                    <td>${car.cylinders}</td>
+                    <td>${car.transmission}</td>
+                </tr>
+            `).join('');
+        }
+
+        function updateAll() {
+            const data = getFilteredData();
+            updateStats(data);
+            updateScatterPlot(data);
+            updateBarChart(data);
+            updatePieChart(data);
+            updateTable(data);
+        }
+
+        // Event listeners
+        document.querySelectorAll('select, input[type="checkbox"]').forEach(el => {
+            el.addEventListener('change', updateAll);
+        });
+
+        document.getElementById('hp-min').addEventListener('input', function() {
+            document.getElementById('hp-min-val').textContent = this.value;
+            updateAll();
+        });
+
+        document.getElementById('hp-max').addEventListener('input', function() {
+            document.getElementById('hp-max-val').textContent = this.value;
+            updateAll();
+        });
+
+        // Initial render
+        updateAll();
+    </script>
+</body>
+</html>
